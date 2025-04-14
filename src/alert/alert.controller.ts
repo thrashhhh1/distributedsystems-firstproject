@@ -13,8 +13,8 @@ export class AlertController {
   }
 
   @Get()
-  findAll() {
-    return this.alertService.findAll();
+  findRandom() {
+    return this.alertService.findRandom();
   }
   
 }

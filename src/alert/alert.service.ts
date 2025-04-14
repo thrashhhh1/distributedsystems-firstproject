@@ -58,5 +58,13 @@ export class AlertService {
   findAll() {
     return this.alertModel.find();
   }
+  async findRandom() {
+    const count = await this.alertModel.estimatedDocumentCount();
+    if (count === 0) return null;
+
+    const random = Math.floor(Math.random() * count);
+    const [doc] = await this.alertModel.find().skip(random).limit(1);
+    return doc;
+  }
 
 }
