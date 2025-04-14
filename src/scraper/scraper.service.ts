@@ -75,7 +75,7 @@ export class ScraperService {
     console.log(JSON.stringify(results, null, 2));
 
 
-    return `This action returns all scraper`;
+    return results;
   }
 
 

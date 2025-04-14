@@ -23,7 +23,7 @@ export class Alert {
     @Prop({ required: true })
     type: string;
 
-    @Prop({ required: true })
+    @Prop({})
     subtype: string;
 
     @Prop({ required: true })
