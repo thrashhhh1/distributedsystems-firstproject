@@ -4,10 +4,10 @@ import { UpdateAlertDto } from './dto/update-alert.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Alert } from './entities/alert.entity';
 import { Model } from 'mongoose';
-import { ScraperService } from 'src/scraper/scraper.service';
+import { ScraperService } from 'src/modules/scraper/scraper.service';
 
 @Injectable()
-export class AlertService {
+export class StorageService {
 
   constructor(
     @InjectModel(Alert.name)
@@ -15,7 +15,7 @@ export class AlertService {
     private readonly scraperService: ScraperService
   ) { }
 
-  async create(createAlertDto: CreateAlertDto) {
+  async create() {
     const results = await this.scraperService.findAll();
 
     const allAlerts = results.flatMap(result => {

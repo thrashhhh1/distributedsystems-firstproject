@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AlertService } from './alert.service';
-import { AlertController } from './alert.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Alert } from './entities/alert.entity';
 import { AlertSchema } from './entities/alert.entity';
-import { ScraperModule } from 'src/scraper/scraper.module';
+import { ScraperModule } from 'src/modules/scraper/scraper.module';
+import { StorageService } from './storage.service';
+import { StorageController } from './storage.controller';
 
 @Module({
   imports: [
@@ -16,7 +16,8 @@ import { ScraperModule } from 'src/scraper/scraper.module';
     ]),
     ScraperModule
   ],
-  controllers: [AlertController],
-  providers: [AlertService],
+  controllers: [StorageController],
+  providers: [StorageService],
 })
-export class AlertModule { }
+export class StorageModule { }
+ 

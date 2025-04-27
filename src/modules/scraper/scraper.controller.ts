@@ -7,7 +7,7 @@ import { UpdateScraperDto } from './dto/update-scraper.dto';
 export class ScraperController {
   constructor(private readonly scraperService: ScraperService) {}
 
-  @Post()
+  @Get()
   findAll() {
     return this.scraperService.findAll();
   }

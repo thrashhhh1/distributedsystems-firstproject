@@ -1,11 +1,18 @@
 import { Module } from '@nestjs/common';
-import { ScraperModule } from './scraper/scraper.module';
-import { MongoDBModule } from './database/mongodb/mongodb.module';
-import { AlertModule } from './alert/alert.module';
-import { TrafficModule } from './traffic/traffic.module';
+import { ConfigModule } from '@nestjs/config';
 
+import { DatabaseModule } from './core/database/mongodb/database.module';
+import { CacheModule } from './core/cache/cache.module';
+import { ScraperModule } from './modules/scraper/scraper.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { EnvConfiguration } from './config/env.config';
 
 @Module({
-  imports: [MongoDBModule, ScraperModule, AlertModule, TrafficModule],
+  imports: [
+    ConfigModule.forRoot({
+      load: [EnvConfiguration],
+      isGlobal: true,
+    }),
+    DatabaseModule, CacheModule, ScraperModule, StorageModule],
 })
 export class AppModule { }
