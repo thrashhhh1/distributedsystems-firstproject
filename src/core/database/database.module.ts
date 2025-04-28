@@ -1,4 +1,3 @@
-// src/database/database.module.ts (o mongodb.module.ts)
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -8,7 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
         MongooseModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => {
-                const mongoUri = configService.get<string>('MONGODB_URL');
+                const mongoUri = configService.get<string>('MONGODB_URI');
                 console.log(`Connecting to MongoDB at: ${mongoUri}`);
                 return {
                     uri: mongoUri,
@@ -17,4 +16,4 @@ import { MongooseModule } from '@nestjs/mongoose';
         }),
     ],
 })
-export class DatabaseModule { } // O export class MongoDBModule {}
+export class DatabaseModule { }

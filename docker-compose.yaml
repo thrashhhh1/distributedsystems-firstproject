@@ -1,12 +1,20 @@
-version: '3'
-
-services: 
-  db:
+services:
+  mongodb:
     image: mongo:5
-    restart: always
+    container_name: mongo-distributedsystems 
     ports:
-      - 27017:27017
-    environment:
-      MONGODB_DATABASE: distributedsystems-firstproject
+      - "27017:27017"
     volumes:
-      - ./mongo:/data/db
+      - mongo:/data/db 
+    restart: always 
+  # Servicio de Cache en Memoria Redis
+  redis:
+    image: redis:latest 
+    container_name: redis-distributedsystems 
+    ports:
+      - "6379:6379"
+    restart: always 
+
+# Definición de los volúmenes nombrados para la persistencia de datos
+volumes:
+  mongo: # Volumen para los datos de MongoDB

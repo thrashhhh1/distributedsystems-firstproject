@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { DatabaseModule } from './core/database/mongodb/database.module';
-import { CacheModule } from './core/cache/cache.module';
+import { EnvConfiguration } from './config/env.config';
+import { DatabaseModule } from './core/database/database.module';
+import { RedisModule } from './core/cache/redis.module';
 import { ScraperModule } from './modules/scraper/scraper.module';
 import { StorageModule } from './modules/storage/storage.module';
-import { EnvConfiguration } from './config/env.config';
+import { TrafficGeneratorModule } from './modules/traffic-generator/traffic-generator.module';
+import { CacheModule } from './modules/cache/cache.module';
 
 @Module({
   imports: [
@@ -13,6 +15,6 @@ import { EnvConfiguration } from './config/env.config';
       load: [EnvConfiguration],
       isGlobal: true,
     }),
-    DatabaseModule, CacheModule, ScraperModule, StorageModule],
+    DatabaseModule, RedisModule, ScraperModule, StorageModule, TrafficGeneratorModule, CacheModule],
 })
 export class AppModule { }

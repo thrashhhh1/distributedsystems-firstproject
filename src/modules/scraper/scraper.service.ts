@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { CreateScraperDto } from './dto/create-scraper.dto';
-import { UpdateScraperDto } from './dto/update-scraper.dto';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+
+import { StorageService } from '../storage/storage.service';
 
 type BoundingBox = {
   comuna: string;
@@ -11,8 +11,22 @@ type BoundingBox = {
 };
 
 @Injectable()
-export class ScraperService {
-  async findAll() {
+export class ScraperService implements OnApplicationBootstrap {
+
+  private readonly logger = new Logger(ScraperService.name);
+
+  constructor(  
+    private readonly storageService: StorageService
+  ) { }
+
+
+  async onApplicationBootstrap() {
+    await this.scrapeData();
+  }
+
+
+
+  async scrapeData() {
     const results: any[] = [];
     const comunas: BoundingBox[] = [
       { comuna: 'Santiago Centro', top: -33.430, bottom: -33.470, left: -70.690, right: -70.620 },
@@ -71,10 +85,7 @@ export class ScraperService {
       await new Promise((res) => setTimeout(res, 500));
     }
 
-    // Aquí puedes guardar los resultados en un archivo, base de datos, etc.
-    console.log(JSON.stringify(results, null, 2));
-
-
+    this.storageService.create(results)
     return results;
   }
 

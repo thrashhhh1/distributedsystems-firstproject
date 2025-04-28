@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
+
 import { ScraperService } from './scraper.service';
-import { ScraperController } from './scraper.controller';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  controllers: [ScraperController],
+  imports: [StorageModule],
   providers: [ScraperService],
-  exports: [ScraperService]
 })
 export class ScraperModule { }
 

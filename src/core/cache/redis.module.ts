@@ -15,8 +15,8 @@ import { redisStore } from 'cache-manager-redis-store';
                         host: configService.get<string>('REDIS_HOST'),
                         port: parseInt(configService.get<string>('REDIS_PORT') || '6379', 10),
                     },
-                    password: configService.get<string>('REDIS_PASSWORD'),
-                    database: configService.get<number>('REDIS_DB'),
+                    // password: configService.get<string>('REDIS_PASSWORD'),
+                    // database: configService.get<number>('REDIS_DB'),
                     ttl: configService.get<number>('CACHE_TTL'), // TTL por defecto
                 });
                 return {
@@ -27,4 +27,4 @@ import { redisStore } from 'cache-manager-redis-store';
         }),
     ],
 })
-export class CacheModule { }
+export class RedisModule { }
