@@ -22,7 +22,7 @@ Para ejecutar este proyecto, se necesita instalado:
 
 1.  **Clonar el Repositorio:**
     ```bash
-    git clone [https://github.com/thrashhhh1/distributedsystems-firstproject](https://github.com/thrashhhh1/distributedsystems-firstproject)
+    git clone https://github.com/thrashhhh1/distributedsystems-firstproject
     cd distributedsystems-firstproject
     ```
 
