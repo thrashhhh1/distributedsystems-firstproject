@@ -8,12 +8,12 @@ Tecnologías: NestJS como framework de backend, MongoDB como sistema de almacena
 * **Generador de Tráfico:** Simula automáticamente consultas hacia el sistema de caché utilizando los datos almacenados, aplicando distribuciones de llegada Poisson y/o Uniforme (configurable).
 * **Caché:** Utiliza Redis para almacenar en caché los eventos consultados frecuentemente por el generador de tráfico. Implementa métricas de rendimiento (Hits, Misses, Hit Rate) y permite experimentar con diferentes políticas de remoción y tamaños configurando el servicio Redis.
 
-## Prerequisites
+## Prerequisitos
 
 Para ejecutar este proyecto, se necesita instalado:
 
-* **Docker:** 
-* **Docker Compose:** 
+* **Docker** 
+* **Docker Compose** 
 
 (No es estrictamente necesario tener Node.js o npm instalados en la máquina host si solo se va a ejecutar via Docker).
 
@@ -21,8 +21,8 @@ Para ejecutar este proyecto, se necesita instalado:
 
 1.  **Clonar el Repositorio:**
     ```bash
-    git clone <url-de-tu-repositorio>
-    cd <nombre-de-tu-repositorio> 
+    git clone https://github.com/thrashhhh1/distributedsystems-firstproject
+    cd distributedsystems-firstproject
     ```
 
 2.  **Crear Archivo de Entorno (`.env`):**
@@ -39,21 +39,15 @@ Para ejecutar este proyecto, se necesita instalado:
     MONGODB_URL=mongodb://mongodb:27017/mongo-distributedsystems 
 
     # Configuración de Redis
-    # ¡Importante! Usa el nombre del servicio 'redis' definido en docker-compose.yaml
+    # Importante: Usa el nombre del servicio 'redis' definido en docker-compose.yaml
     REDIS_HOST=redis
     REDIS_PORT=6379
-    # REDIS_PASSWORD= # Descomentar si Redis tiene contraseña
 
-    # TTL por defecto para la caché en segundos (ej: 10 minutos)
-    CACHE_TTL=600 
-
-    # Tipos de distribución para el generador de tráfico (separados por coma: poisson,uniforme)
-    TRAFFIC_DISTRIBUTION_TYPES=poisson,uniforme 
+    # TTL por defecto para la caché en segundos (1 minuto)
+    CACHE_TTL=60
 
     # Número de consultas a simular por cada distribución en el generador de tráfico
     SIMULATION_QUERY_COUNT=1000 
-    
-    # (Opcional) Puedes añadir otras variables que necesite tu aplicación
     ```
 
 3.  **Configuración de Experimentos de Caché (Opcional):**
@@ -65,7 +59,7 @@ Para ejecutar este proyecto, se necesita instalado:
         # ... (image, ports, etc.) ...
         # --- Comando para configurar Redis (¡ELIGE UNA LÍNEA y descoméntala!) ---
         # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy volatile-lru 
-        command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+        command: redis-server --save "" --appendonly no --maxmemory 150kb --maxmemory-policy allkeys-lru
         # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lfu
         # command: redis-server --save "" --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru 
     ```
@@ -97,20 +91,13 @@ Para ejecutar este proyecto, se necesita instalado:
 
 Para comparar diferentes configuraciones de caché:
 
-1.  Asegúrate de que los contenedores estén corriendo (`docker-compose up -d`).
+1.  Asegurar de que los contenedores estén corriendo (`docker-compose up -d`).
 2.  Deja que la simulación de tráfico se ejecute (monitoriza con `docker-compose logs -f app`).
-3.  Anota las métricas de caché impresas en los logs para la configuración actual.
+3.  Cuando termine, se imprimiran las estadisticas en consola. 
 4.  Detén y elimina los contenedores: `docker-compose down`.
-5.  **Importante (Opcional):** Si quieres empezar la siguiente prueba con una base de datos limpia, elimina el volumen de MongoDB:
-    ```bash
-    # Asegúrate de reemplazar <nombre_directorio_proyecto> con el nombre real de tu carpeta
-    docker volume rm <nombre_directorio_proyecto>_mongo_data 
-    ```
-    * **¡Cuidado! Esto borra permanentemente los datos de MongoDB.**
-6.  Edita `docker-compose.yaml`, comenta la línea `command:` de Redis anterior y descomenta la nueva configuración que quieres probar. Guarda el archivo.
-7.  Inicia de nuevo: `docker-compose up -d` (no siempre necesitas `--build` si solo cambiaste el `command` de Redis).
-8.  Repite los pasos 2-4 para recolectar las métricas de la nueva configuración.
-9.  Compara los resultados en tu informe.
+5.  Edita `docker-compose.yaml`, comenta la línea `command:` de Redis anterior y descomenta la nueva configuración que quieres probar. Guarda el archivo.
+6.  Inicia de nuevo: `docker-compose up -d` (no siempre necesitas `--build` si solo cambiaste el `command` de Redis).
+
 
 ## Detener la Aplicación
 
