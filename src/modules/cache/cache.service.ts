@@ -11,11 +11,9 @@ export class CacheService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
-
-  // Método genérico para obtener de caché
+  
   async get<T>(key: string): Promise<T | undefined> {
     try {
-      this.logger.debug(`Obteniendo ${key} del cache`);
       const result = await this.cacheManager.get<T>(key);
       if (result !== undefined && result !== null) {
         this.cacheHits++;
@@ -32,16 +30,13 @@ export class CacheService {
     }
   }
 
-  // Método genérico para guardar en caché
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
       this.logger.debug(`Setteando en cache: ${key}`);
       if (ttl) {
           await this.cacheManager.set(key, value, ttl);
-          this.logger.debug(`${key} almacenado en cache con TTL ${ttl}s.`);
       } else {
-          await this.cacheManager.set(key, value);
-          this.logger.debug(`${key} almacenado en cache con TTL default.`);
+          await this.cacheManager.set(key, value, ttl);
       }
     } catch (error) {
       this.logger.error(`Error al settear ${key} en cache: ${error.message}`, error.stack);
@@ -58,7 +53,6 @@ export class CacheService {
       }
   }
 
-  // Métodos para métricas
   getCacheStats() {
     const total = this.cacheHits + this.cacheMisses;
     const hitRate = total === 0 ? 0 : (this.cacheHits / total) * 100;
@@ -70,20 +64,27 @@ export class CacheService {
     };
   }
 
-  resetCacheStats() {
+  async resetCacheStatsAndClearCache() {
     this.cacheHits = 0;
     this.cacheMisses = 0;
     this.logger.log('Reiniciando estadisticas del cache.');
+    try {
+      await this.cacheManager.clear();
+      this.logger.log('Cache limpia.')
+    } catch (error) {
+      this.logger.error('Error al limpiar cache', error.stack);
+    }
   }
 
+  // Metodo para el analisis de las politicas y tasas de arribo
   printAndResetCacheStats(simulationType: string) {
     this.logger.log(`--- Estadisticas de cache con simulacion: ${simulationType} ---`);
     const stats = this.getCacheStats();
-    this.logger.log(`Hits: ${stats.hits}`);
-    this.logger.log(`Misses: ${stats.misses}`);
-    this.logger.log(`Queries totales: ${stats.total}`);
-    this.logger.log(`Hit Rate: ${stats.hitRate}`);
+    this.logger.log(`Total de HITS: ${stats.hits}`);
+    this.logger.log(`Total de MISSES: ${stats.misses}`);
+    this.logger.log(`Total de QUERYS: ${stats.total}`);
+    this.logger.log(`HIT RATE: ${stats.hitRate}`);
     this.logger.log(`--------------------------------------------------`);
-    this.resetCacheStats(); 
+    this.resetCacheStatsAndClearCache(); 
   }
 }

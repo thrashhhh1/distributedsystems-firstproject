@@ -1,100 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Proyecto Sistemas Distribuidos: Plataforma de análisis de tráfico
+Tecnologías: NestJS como framework de backend, MongoDB como sistema de almacenamiento y Redis como sistema de caché. Toda la aplicación está contenerizada usando Docker y Docker Compose.
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+**Funcionalidades:**
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+* **Scraper:** Extrae datos de alertas de tráfico desde el Live Map de Waze para diversas comunas de la RM de forma automática al iniciar. Continúa ejecutándose en ciclos hasta almacenar al menos 10.000 eventos en la base de datos.
+* **Almacenamiento:** Guarda los eventos de Waze obtenidos en una base de datos MongoDB.
+* **Generador de Tráfico:** Simula automáticamente consultas hacia el sistema de caché utilizando los datos almacenados, aplicando distribuciones de llegada Poisson y/o Uniforme (configurable).
+* **Caché:** Utiliza Redis para almacenar en caché los eventos consultados frecuentemente por el generador de tráfico. Implementa métricas de rendimiento (Hits, Misses, Hit Rate) y permite experimentar con diferentes políticas de remoción y tamaños configurando el servicio Redis.
 
-## Description
+## Prerequisites
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Para ejecutar este proyecto, se necesita instalado:
 
-## Project setup
+* **Docker:** 
+* **Docker Compose:** 
+
+(No es estrictamente necesario tener Node.js o npm instalados en la máquina host si solo se va a ejecutar via Docker).
+
+## Configuración
+
+1.  **Clonar el Repositorio:**
+    ```bash
+    git clone <url-de-tu-repositorio>
+    cd <nombre-de-tu-repositorio> 
+    ```
+
+2.  **Crear Archivo de Entorno (`.env`):**
+    Este proyecto utiliza un archivo `.env` en la raíz para configurar variables esenciales. Crea un archivo llamado `.env` y copia/pega el siguiente contenido, ajustando si es necesario (aunque los valores por defecto deberían funcionar con Docker Compose):
+
+    ```dotenv
+    # .env
+
+    # Puerto en el que correrá la aplicación NestJS dentro del contenedor
+    PORT=3000
+
+    # URL de conexión a MongoDB
+    # Importante: Usa el nombre del servicio 'mongodb' definido en docker-compose.yaml
+    MONGODB_URL=mongodb://mongodb:27017/mongo-distributedsystems 
+
+    # Configuración de Redis
+    # ¡Importante! Usa el nombre del servicio 'redis' definido en docker-compose.yaml
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+    # REDIS_PASSWORD= # Descomentar si Redis tiene contraseña
+
+    # TTL por defecto para la caché en segundos (ej: 10 minutos)
+    CACHE_TTL=600 
+
+    # Tipos de distribución para el generador de tráfico (separados por coma: poisson,uniforme)
+    TRAFFIC_DISTRIBUTION_TYPES=poisson,uniforme 
+
+    # Número de consultas a simular por cada distribución en el generador de tráfico
+    SIMULATION_QUERY_COUNT=1000 
+    
+    # (Opcional) Puedes añadir otras variables que necesite tu aplicación
+    ```
+
+3.  **Configuración de Experimentos de Caché (Opcional):**
+    Para evaluar diferentes políticas de remoción y tamaños de caché de Redis como pide la Tarea 1, edita el archivo `docker-compose.yaml`. Busca la sección del servicio `redis` y descomenta **SOLO UNA** de las líneas `command:` según el experimento que quieras realizar. Por defecto, una estará descomentada.
+
+    ```yaml
+    # Ejemplo dentro de docker-compose.yaml, servicio redis:
+      redis:
+        # ... (image, ports, etc.) ...
+        # --- Comando para configurar Redis (¡ELIGE UNA LÍNEA y descoméntala!) ---
+        # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy volatile-lru 
+        command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+        # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lfu
+        # command: redis-server --save "" --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru 
+    ```
+
+## Ejecución (Usando Docker Compose)
+
+1.  **Abrir Terminal:** Navegar a la carpeta raíz del proyecto donde se encuentran los archivos `docker-compose.yaml` y `Dockerfile`.
+2.  **Construir e Iniciar Servicios:** Ejecuta el siguiente comando. La primera vez, el paso de `build` puede tardar unos minutos.
+    ```bash
+    docker-compose up -d --build
+    ```
+
+3.  **Verificar Contenedores:** Puedes ver los contenedores corriendo con:
+    ```bash
+    docker ps
+    ```
+    Deben estar los contenedores para `app`, `mongodb` y `redis`.
+
+4.  **Ver Logs de la Aplicación:** Para ver qué está haciendo la aplicación NestJS (incluyendo el scraper, generador de tráfico y estadísticas de caché), usa:
+    ```bash
+    docker-compose logs -f app
+    ```
+    * `-f`: Seguir los logs en tiempo real (Ctrl+C para salir).
+    * `app`: Nombre del servicio de tu aplicación en `docker-compose.yaml`.
+    * **Qué buscar:** Mensajes de inicio de NestJS, logs del `ScraperService` indicando conteo de eventos y esperas, logs del `TrafficGeneratorService` indicando inicio de simulaciones, y logs del `CacheService` con las estadísticas de HIT/MISS/Hit Rate para cada distribución probada.
+
+
+## Ejecución de Experimentos de Caché
+
+Para comparar diferentes configuraciones de caché:
+
+1.  Asegúrate de que los contenedores estén corriendo (`docker-compose up -d`).
+2.  Deja que la simulación de tráfico se ejecute (monitoriza con `docker-compose logs -f app`).
+3.  Anota las métricas de caché impresas en los logs para la configuración actual.
+4.  Detén y elimina los contenedores: `docker-compose down`.
+5.  **Importante (Opcional):** Si quieres empezar la siguiente prueba con una base de datos limpia, elimina el volumen de MongoDB:
+    ```bash
+    # Asegúrate de reemplazar <nombre_directorio_proyecto> con el nombre real de tu carpeta
+    docker volume rm <nombre_directorio_proyecto>_mongo_data 
+    ```
+    * **¡Cuidado! Esto borra permanentemente los datos de MongoDB.**
+6.  Edita `docker-compose.yaml`, comenta la línea `command:` de Redis anterior y descomenta la nueva configuración que quieres probar. Guarda el archivo.
+7.  Inicia de nuevo: `docker-compose up -d` (no siempre necesitas `--build` si solo cambiaste el `command` de Redis).
+8.  Repite los pasos 2-4 para recolectar las métricas de la nueva configuración.
+9.  Compara los resultados en tu informe.
+
+## Detener la Aplicación
+
+Para detener y eliminar los contenedores, redes y volúmenes (excepto los nombrados como `mongo_data`):
 
 ```bash
-$ npm install
-```
-
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-# distributedsystems-firstproject
+docker-compose down

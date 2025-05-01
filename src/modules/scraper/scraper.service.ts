@@ -1,6 +1,9 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { StorageService } from '../storage/storage.service';
+import { AlertData } from '../storage/interfaces/alert-data.interface';
+import { ConfigService } from '@nestjs/config';
 
 type BoundingBox = {
   comuna: string;
@@ -10,24 +13,85 @@ type BoundingBox = {
   right: number;
 };
 
+interface ScraperResult {
+  comuna: string;
+  data?: {
+    alerts?: AlertData[];
+  };
+}
+
 @Injectable()
 export class ScraperService implements OnApplicationBootstrap {
-
   private readonly logger = new Logger(ScraperService.name);
+  private readonly TARGET_EVENT_COUNT = this.configService.get<number>('TARGET_EVENT_COUNT');
+  private readonly WAIT_INTERVAL_MS = 0; // Scrape cada 0 segundos, hasta 10k 
+  private isScrapingLoopActive = false;
 
-  constructor(  
-    private readonly storageService: StorageService
+  constructor(
+    private readonly storageService: StorageService,
+    private eventEmitter: EventEmitter2,
+    private configService: ConfigService,
   ) { }
 
-
   async onApplicationBootstrap() {
-    await this.scrapeData();
+    this.logger.log('--- Iniciando el proceso de scraping de eventos ---');
+    this.ensureMinimumEvents().catch(error => {
+      this.logger.error('Error al iniciar el proceso de scraping:', error.stack);
+    });
   }
 
+  async ensureMinimumEvents() {
+    if (this.isScrapingLoopActive) {
+      this.logger.warn('Scraping activo.');
+      return;
+    }
+    this.isScrapingLoopActive = true;
+    this.logger.log(`Iniciando ciclo para asegurar ${this.TARGET_EVENT_COUNT} eventos.`);
 
+    try {
+      let currentCount = 0;
+      while (currentCount < this.TARGET_EVENT_COUNT) {
+        currentCount = await this.storageService.countAll();
+        this.logger.log(`Cantidad de eventos almacenados actualmente: ${currentCount} / ${this.TARGET_EVENT_COUNT}`);
+
+        if (currentCount >= this.TARGET_EVENT_COUNT) {
+          this.logger.log(`La base de datos ya alcanzo los ${this.TARGET_EVENT_COUNT}, actualmente contiene (${currentCount}) eventos.`);
+          this.eventEmitter.emit(
+            'scrape.target.reached',
+            { eventCount: currentCount },
+          );
+          break;
+        }
+
+        try {
+          await this.scrapeData();
+        } catch (scrapeError) {
+          this.logger.error('Error en ciclo de scrapping:', scrapeError.stack);
+        }
+
+        currentCount = await this.storageService.countAll();
+        if (currentCount >= this.TARGET_EVENT_COUNT) {
+          this.eventEmitter.emit(
+            'scrape.target.reached',
+            { eventCount: currentCount }
+          );
+          break;
+        } else {
+          this.logger.log(`Aun no se almacenan (${currentCount}). Espera hasta que se consigan las ${this.TARGET_EVENT_COUNT} alertas.`);
+          await new Promise(resolve => setTimeout(resolve, this.WAIT_INTERVAL_MS));
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error en el ciclo de obtener alertas minimas para funcionamiento:', error.stack);
+    } finally {
+      this.isScrapingLoopActive = false;
+      this.logger.log('Ciclo finalizado.');
+    }
+  }
 
   async scrapeData() {
-    const results: any[] = [];
+    this.logger.log('--- Obteniendo eventos de Waze ---');
+    const results: ScraperResult[] = [];
     const comunas: BoundingBox[] = [
       { comuna: 'Santiago Centro', top: -33.430, bottom: -33.470, left: -70.690, right: -70.620 },
       { comuna: 'Ñuñoa', top: -33.440, bottom: -33.490, left: -70.630, right: -70.570 },
@@ -69,26 +133,48 @@ export class ScraperService implements OnApplicationBootstrap {
       { comuna: 'Talagante', top: -33.590, bottom: -33.700, left: -70.930, right: -70.780 }
     ];
 
-
-
-
-
     for (const bbox of comunas) {
-      const url = `https://www.waze.com/live-map/api/georss?top=${bbox.top}&bottom=${bbox.bottom}&left=${bbox.left}&right=${bbox.right}&env=row&types=alerts,traffic`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Error en ${bbox.comuna}: ${res.status}`);
-      const data = await res.json();
-      const result = { comuna: bbox.comuna, data }
-      results.push(result);
+      const url = `https://www.waze.com/live-map/api/georss?top=${bbox.top}&bottom=${bbox.bottom}&left=${bbox.left}&right=${bbox.right}&env=row&types=alerts`;
 
-      // opcional: evita saturar la API
-      await new Promise((res) => setTimeout(res, 500));
+      try {
+        this.logger.debug(`Obteniendo eventos de: ${bbox.comuna}`);
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          this.logger.error(`Error al obtener el evento: ${bbox.comuna}: ${res.status} ${res.statusText}`);
+          continue;
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const data = await res.json();
+          if (data && data.alerts) {
+            const result = { comuna: bbox.comuna, data };
+            results.push(result);
+          } else {
+            this.logger.warn(`Error al obtener evento de: ${bbox.comuna}`);
+          }
+        }
+
+        await new Promise((res) => setTimeout(res, 500));
+
+      } catch (error) {
+        this.logger.error(`Error al obtener el evento: ${bbox.comuna}: ${error.message}`, error.stack);
+      }
     }
 
-    this.storageService.create(results)
-    return results;
+    this.logger.log(`Ciclo de scrapping finalizado. Total: ${results.length}`);
+
+    if (results.length > 0) {
+      try {
+        this.logger.log('Guardando los eventos en la base de datos');
+        const savedCount = await this.storageService.create(results);
+      } catch (error) {
+        this.logger.error('Error al guardar los eventos en este ciclo:', error.stack);
+        throw error;
+      }
+    } else {
+      this.logger.warn('Ningun evento guardado en este ciclo.');
+    }
   }
-
-
-
 }

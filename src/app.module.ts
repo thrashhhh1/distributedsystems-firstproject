@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { EnvConfiguration } from './config/env.config';
 import { DatabaseModule } from './core/database/database.module';
@@ -15,6 +16,7 @@ import { CacheModule } from './modules/cache/cache.module';
       load: [EnvConfiguration],
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     DatabaseModule, RedisModule, ScraperModule, StorageModule, TrafficGeneratorModule, CacheModule],
 })
 export class AppModule { }
