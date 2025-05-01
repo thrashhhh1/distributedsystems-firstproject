@@ -12,7 +12,7 @@ import { redisStore } from 'cache-manager-redis-store';
                 const store = await redisStore({
                     socket: {
                         host: configService.get<string>('REDIS_HOST'),
-                        port: parseInt(configService.get<string>('REDIS_PORT') || '6379', 10),
+                        port: parseInt(configService.get<string>('REDIS_PORT')),
                     },
                     ttl: configService.get<number>('CACHE_TTL'), 
                 });

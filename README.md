@@ -1,4 +1,5 @@
 # Proyecto Sistemas Distribuidos: Plataforma de análisis de tráfico
+
 Tecnologías: NestJS como framework de backend, MongoDB como sistema de almacenamiento y Redis como sistema de caché. Toda la aplicación está contenerizada usando Docker y Docker Compose.
 
 **Funcionalidades:**
@@ -12,8 +13,8 @@ Tecnologías: NestJS como framework de backend, MongoDB como sistema de almacena
 
 Para ejecutar este proyecto, se necesita instalado:
 
-* **Docker** 
-* **Docker Compose** 
+* **Docker**
+* **Docker Compose**
 
 (No es estrictamente necesario tener Node.js o npm instalados en la máquina host si solo se va a ejecutar via Docker).
 
@@ -21,12 +22,12 @@ Para ejecutar este proyecto, se necesita instalado:
 
 1.  **Clonar el Repositorio:**
     ```bash
-    git clone https://github.com/thrashhhh1/distributedsystems-firstproject
+    git clone [https://github.com/thrashhhh1/distributedsystems-firstproject](https://github.com/thrashhhh1/distributedsystems-firstproject)
     cd distributedsystems-firstproject
     ```
 
-2.  **Crear Archivo de Entorno (`.env`):**
-    Este proyecto utiliza un archivo `.env` en la raíz para configurar variables esenciales. Crea un archivo llamado `.env` y copia/pega el siguiente contenido, ajustando si es necesario (aunque los valores por defecto deberían funcionar con Docker Compose):
+2.  **Archivo de Entorno (`.env`):**
+    Este proyecto utiliza un archivo `.env` en la raíz para configurar variables esenciales. **Se recomienda encarecidamente crear este archivo** para tener claridad sobre la configuración y poder modificarla fácilmente. Crea un archivo llamado `.env` y copia/pega el siguiente contenido como punto de partida:
 
     ```dotenv
     # .env
@@ -46,22 +47,28 @@ Para ejecutar este proyecto, se necesita instalado:
     # TTL por defecto para la caché en segundos (1 minuto)
     CACHE_TTL=60
 
+    # Tipos de distribución para el generador de tráfico (separados por coma: poisson,uniforme)
+    # Dejar vacío o comentar para usar el default ('poisson,uniforme') definido en el código
+    # TRAFFIC_DISTRIBUTION_TYPES=poisson,uniforme 
+
     # Número de consultas a simular por cada distribución en el generador de tráfico
-    SIMULATION_QUERY_COUNT=1000 
+    # Dejar vacío o comentar para usar el default (1000) definido en el código
+    # SIMULATION_QUERY_COUNT=1000 
     ```
 
-3.  **Configuración de Experimentos de Caché (Opcional):**
-    Para evaluar diferentes políticas de remoción y tamaños de caché de Redis como pide la Tarea 1, edita el archivo `docker-compose.yaml`. Busca la sección del servicio `redis` y descomenta **SOLO UNA** de las líneas `command:` según el experimento que quieras realizar. Por defecto, una estará descomentada.
+    *(**Nota Importante:** Si decides **no crear** el archivo `.env`, la aplicación intentará iniciarse utilizando los valores predeterminados definidos en el código (principalmente en `src/config/env.config.ts`) y en `docker-compose.yaml` (a través de la sintaxis `${VARIABLE:-default}`). Esto **solo funcionará correctamente si los puertos por defecto mapeados en `docker-compose.yaml` (`3000` para la app, `27017` para MongoDB, `6379` para Redis) no están ya en uso** en tu máquina host. Crear el archivo `.env` sigue siendo la forma recomendada de gestionar la configuración.)*
+
+3.  **Configuración de Experimentos de Caché:**
+    Para evaluar diferentes políticas de remoción y tamaños de caché de Redis, edita el archivo `docker-compose.yaml`. Busca la sección del servicio `redis` y descomenta **SOLO UNA** de las líneas `command:` según el experimento que quieras realizar.
 
     ```yaml
     # Ejemplo dentro de docker-compose.yaml, servicio redis:
       redis:
         # ... (image, ports, etc.) ...
-        # --- Comando para configurar Redis (¡ELIGE UNA LÍNEA y descoméntala!) ---
-        # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy volatile-lru 
+        # --- Comando para configurar Redis (ELIGE UNA  SOLA LÍNEA y descoméntala!) --- 
         command: redis-server --save "" --appendonly no --maxmemory 150kb --maxmemory-policy allkeys-lru
-        # command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lfu
-        # command: redis-server --save "" --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru 
+        # command: redis-server --save "" --appendonly no --maxmemory 8mb --maxmemory-policy allkeys-lfu 
+        # ... (otras opciones que hayas añadido) ...
     ```
 
 ## Ejecución (Usando Docker Compose)
@@ -78,14 +85,13 @@ Para ejecutar este proyecto, se necesita instalado:
     ```
     Deben estar los contenedores para `app`, `mongodb` y `redis`.
 
-4.  **Ver Logs de la Aplicación:** Para ver qué está haciendo la aplicación NestJS (incluyendo el scraper, generador de tráfico y estadísticas de caché), usa:
+4.  **Ver Logs de la Aplicación:** Para ver qué está haciendo la aplicación NestJS (scraper, generador de tráfico, estadísticas de caché), usa:
     ```bash
     docker-compose logs -f app
     ```
     * `-f`: Seguir los logs en tiempo real (Ctrl+C para salir).
     * `app`: Nombre del servicio de tu aplicación en `docker-compose.yaml`.
-    * **Qué buscar:** Mensajes de inicio de NestJS, logs del `ScraperService` indicando conteo de eventos y esperas, logs del `TrafficGeneratorService` indicando inicio de simulaciones, y logs del `CacheService` con las estadísticas de HIT/MISS/Hit Rate para cada distribución probada.
-
+    * **Qué buscar:** Mensajes de inicio de NestJS, logs del `ScraperService`, logs del `TrafficGeneratorService`, y logs del `CacheService` con las estadísticas.
 
 ## Ejecución de Experimentos de Caché
 
@@ -93,7 +99,7 @@ Para comparar diferentes configuraciones de caché:
 
 1.  Asegurar de que los contenedores estén corriendo (`docker-compose up -d`).
 2.  Deja que la simulación de tráfico se ejecute (monitoriza con `docker-compose logs -f app`).
-3.  Cuando termine, se imprimiran las estadisticas en consola. 
+3.  Cuando termine, se imprimirán las estadísticas en consola. Anota los resultados (Hit Rate).
 4.  Detén y elimina los contenedores: `docker-compose down`.
 5.  Edita `docker-compose.yaml`, comenta la línea `command:` de Redis anterior y descomenta la nueva configuración que quieres probar. Guarda el archivo.
 6.  Inicia de nuevo: `docker-compose up -d` (no siempre necesitas `--build` si solo cambiaste el `command` de Redis).
@@ -101,7 +107,7 @@ Para comparar diferentes configuraciones de caché:
 
 ## Detener la Aplicación
 
-Para detener y eliminar los contenedores, redes y volúmenes (excepto los nombrados como `mongo_data`):
+Para detener y eliminar los contenedores y la red creada por compose:
 
 ```bash
 docker-compose down
