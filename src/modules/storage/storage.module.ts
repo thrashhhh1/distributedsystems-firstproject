@@ -10,11 +10,11 @@ import { StorageService } from './storage.service';
     MongooseModule.forFeature([
       {
         name: Alert.name,
-        schema: AlertSchema
-      }
+        schema: AlertSchema,
+      },
     ]),
   ],
   providers: [StorageService],
-  exports: [StorageService]
+  exports: [StorageService],
 })
-export class StorageModule { }
+export class StorageModule {}

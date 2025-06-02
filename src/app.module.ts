@@ -17,6 +17,12 @@ import { CacheModule } from './modules/cache/cache.module';
       isGlobal: true,
     }),
     EventEmitterModule.forRoot(),
-    DatabaseModule, RedisModule, ScraperModule, StorageModule, TrafficGeneratorModule, CacheModule],
+    DatabaseModule,
+    RedisModule,
+    ScraperModule,
+    StorageModule,
+    TrafficGeneratorModule,
+    CacheModule,
+  ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+// import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
-import { CacheService } from '../cache/cache.service'; 
 import { StorageService } from '../storage/storage.service';
+import { CacheService } from '../cache/cache.service';
 import { Alert } from '../storage/entities/alert.entity';
 import { getPoissonInterval } from './distribution/distribution.poisson';
 import { getUniformInterval } from './distribution/distribution.uniform';
@@ -16,11 +16,13 @@ export class TrafficGeneratorService {
     private cacheService: CacheService,
     private storageService: StorageService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
-  @OnEvent('scrape.target.reached')
+  // @OnEvent('scrape.target.reached')
   async handleScrapingComplete(payload: { eventCount: number }) {
-    this.logger.log(`Conteo de alertas=${payload.eventCount}. Iniciando simulacion de trafico...`);
+    this.logger.log(
+      `Conteo de alertas=${payload.eventCount}. Iniciando simulacion de trafico...`,
+    );
 
     const distributionTypesRaw = this.configService.get<string>(
       'TRAFFIC_DISTRIBUTION_TYPES',
@@ -39,15 +41,22 @@ export class TrafficGeneratorService {
       return;
     }
 
-    const simulationQueryCount = parseInt(this.configService.get<string>('SIMULATION_QUERY_COUNT'));
+    const simulationQueryCount = parseInt(
+      this.configService.get<string>('SIMULATION_QUERY_COUNT'),
+    );
 
     if (isNaN(simulationQueryCount) || simulationQueryCount <= 0) {
-      this.logger.error(`Valor invalido ${this.configService.get<string>('SIMULATION_QUERY_COUNT')}. Usando 1000 por defecto.`);
+      this.logger.error(
+        `Valor invalido ${this.configService.get<string>('SIMULATION_QUERY_COUNT')}. Usando 1000 por defecto.`,
+      );
     }
 
-
-    this.logger.log(`Distribuciones a ejecutar: ${distributionTypes.join(', ')}`);
-    this.logger.log(`Numero de queries por simulacion: ${simulationQueryCount}`);
+    this.logger.log(
+      `Distribuciones a ejecutar: ${distributionTypes.join(', ')}`,
+    );
+    this.logger.log(
+      `Numero de queries por simulacion: ${simulationQueryCount}`,
+    );
 
     try {
       for (const type of distributionTypes) {
@@ -58,7 +67,6 @@ export class TrafficGeneratorService {
       }
 
       this.logger.log('Todas las simulaciones de trafico han finalizado.');
-
     } catch (error) {
       this.logger.error('La simulacion de trafico fallo:', error.stack);
     }
@@ -79,7 +87,9 @@ export class TrafficGeneratorService {
     try {
       const randomAlertFromDb = await this.storageService.findRandom();
       if (!randomAlertFromDb || !randomAlertFromDb.alertId) {
-        this.logger.warn("Np se pudo obtener una alerta random del almacenamiento.");
+        this.logger.warn(
+          'Np se pudo obtener una alerta random del almacenamiento.',
+        );
         return null;
       }
       alertId = randomAlertFromDb.alertId;
@@ -90,21 +100,31 @@ export class TrafficGeneratorService {
         await this.cacheService.set(cacheKey, alertData);
       }
     } catch (error) {
-      this.logger.error(`Error en una sola simulacion de la query (Intento AlertID: ${alertId}): ${error.message}`, error.stack);
+      this.logger.error(
+        `Error en una sola simulacion de la query (Intento AlertID: ${alertId}): ${error.message}`,
+        error.stack,
+      );
       return null;
     }
     return alertData;
   }
 
-  async generateTraffic(type: 'poisson' | 'uniforme', count: number): Promise<void> {
-    this.logger.log(`--- Iniciando generacion de trafico con distribucion: ${type} y ${count} queries ---`);
+  async generateTraffic(
+    type: 'poisson' | 'uniforme',
+    count: number,
+  ): Promise<void> {
+    this.logger.log(
+      `--- Iniciando generacion de trafico con distribucion: ${type} y ${count} queries ---`,
+    );
     for (let i = 0; i < count; i++) {
-      const result = await this.simulateSingleQuery();
+      await this.simulateSingleQuery();
       const waitTime = this.getInterval(type);
       if (waitTime > 0) {
         await new Promise((res) => setTimeout(res, waitTime));
       }
     }
-    this.logger.log(`--- Ciclo de generacion de trafico con distribucion ${type} finalizado ---`);
+    this.logger.log(
+      `--- Ciclo de generacion de trafico con distribucion ${type} finalizado ---`,
+    );
   }
 }

@@ -5,7 +5,10 @@ import { Model } from 'mongoose';
 import { Alert } from './entities/alert.entity';
 import { AlertData } from './interfaces/alert-data.interface';
 
-interface ScraperResult { comuna: string; data?: { alerts?: AlertData[]; }; }
+interface ScraperResult {
+  commune: string;
+  data?: { alerts?: AlertData[] };
+}
 
 @Injectable()
 export class StorageService {
@@ -14,55 +17,78 @@ export class StorageService {
   constructor(
     @InjectModel(Alert.name)
     private readonly alertModel: Model<Alert>,
-  ) { }
+  ) {}
 
   async create(results: ScraperResult[]): Promise<number> {
     this.logger.log(`${results.length} resultados del scraping.`);
 
-    const allAlerts = results.flatMap(result => {
+    const allAlerts = results.flatMap((result) => {
       const alerts = result?.data?.alerts;
 
       if (!alerts || !Array.isArray(alerts) || alerts.length === 0) {
         return [];
       }
 
-      return alerts.map(alert => ({
-        alertId: alert.uuid ?? `generated_${Date.now()}_${Math.random()}`,
-        country: alert.country ?? 'CL',
-        nThumbsUp: alert.nThumbsUp ?? 0,
-        reportBy: alert.reportBy ?? 'desconocido',
-        reportByMunicipalityUser: alert.reportByMunicipalityUser ?? false,
-        type: alert.type ?? 'desconocida',
-        subtype: alert.subtype ?? 'desconocido',
-        roadType: alert.roadType ?? 0,
+      return alerts.map((alert) => ({
+        alertId: alert.uuid,
+        country: alert.country,
+        nThumbsUp: alert.nThumbsUp,
+        city: alert.city,
+        reportRating: alert.reportRating,
+        reportByMunicipalityUser: alert.reportByMunicipalityUser,
+        reliability: alert.reliability,
+        type: alert.type,
+        fromNodeId: alert.fromNodeId,
+        speed: alert.speed,
+        reportMood: alert.reportMood,
+        subtype: alert.subtype,
+        street: alert.street,
+        additionalInfo: alert.additionalInfo,
+        toNodeId: alert.toNodeId,
+        id: alert.id,
+        nComments: alert.nComments,
+        inscale: alert.inscale,
+        confidence: alert.confidence,
+        roadType: alert.roadType,
+        magvar: alert.magvar,
+        wazeData: alert.wazeData,
         location: {
-          x: alert.location?.x ?? 0,
-          y: alert.location?.y ?? 0,
+          x: alert.location.x,
+          y: alert.location.y,
         },
-        street: alert.street ?? 'desconocida',
-        fromNodeId: alert.fromNodeId ?? 0,
-        toNodeId: alert.toNodeId ?? 0,
-        speed: alert.speed ?? 0,
-        pubMillis: alert.pubMillis ?? Date.now(),
-        additionalInfo: result.comuna,
+        pubMillis: alert.pubMillis,
+        reportBy: alert.reportBy,
+        provider: alert.provider,
+        providerId: alert.providerId,
+        reportDescription: alert.reportDescription,
+        nearBy: alert.nearBy,
       }));
     });
 
     if (allAlerts.length === 0) {
-      this.logger.warn("No hay alertas disponibles para insertar en este ciclo.");
+      this.logger.warn('No hay Alertas para insertar en este ciclo.');
       return 0;
     }
 
     try {
-      const insertResult = await this.alertModel.insertMany(allAlerts, { ordered: false });
-      this.logger.log(`Se han insertado un total de ${insertResult.length} eventos a la base de datos.`);
+      const insertResult = await this.alertModel.insertMany(allAlerts);
+
+      this.logger.log(
+        `Se han insertado ${insertResult.length} Alertas a la DB.`,
+      );
+
       return insertResult.length;
     } catch (error) {
       if (error.code === 11000) {
-        this.logger.warn(`Error. Evento duplicado.`);
+        this.logger.warn(`Error de Alertas duplicadas.`);
+
         return error.result?.nInserted || 0;
       } else {
-        this.logger.error('Error al insertar los eventos a la base de datos:', error.stack);
+        this.logger.error(
+          'Error al insertar las Alertas a la DB:',
+          error.stack,
+        );
+
         throw error;
       }
     }
@@ -71,26 +97,35 @@ export class StorageService {
   async countAll(): Promise<number> {
     try {
       const count = await this.alertModel.countDocuments().exec();
-      this.logger.debug(`Total de eventos en la base de datos: ${count}`);
+      this.logger.debug(`Total de Alertas en la DB: ${count}`);
       return count;
     } catch (error) {
-      this.logger.error('Error calculando eventos totales:', error.stack);
-      throw error; 
+      this.logger.error('Error calculando Alertas totales:', error.stack);
+      throw error;
     }
   }
 
-  // Metodo solo para ver si se estan insertando bien las consultas, no tiene relevancia durante la ejecucion.
-  findAll() {
-    return this.alertModel.find();
+  async findAll() {
+    try {
+      const allAlerts = await this.alertModel.find();
+      return allAlerts;
+    } catch (error) {
+      this.logger.error('Error al buscar las Alertas:', error.stack);
+      throw error;
+    }
   }
 
   async findRandom() {
-    const count = await this.alertModel.estimatedDocumentCount();
-    if (count === 0) return null;
+    try {
+      const count = await this.alertModel.estimatedDocumentCount();
+      if (count === 0) return null;
 
-    const random = Math.floor(Math.random() * count);
-    const [doc] = await this.alertModel.find().skip(random).limit(1);
-    return doc;
+      const random = Math.floor(Math.random() * count);
+      const [doc] = await this.alertModel.find().skip(random).limit(1);
+      return doc;
+    } catch (error) {
+      this.logger.error('Error al buscar un Alerta aleatoria:', error.stack);
+      throw error;
+    }
   }
-
 }

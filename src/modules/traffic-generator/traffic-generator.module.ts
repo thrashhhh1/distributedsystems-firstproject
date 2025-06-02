@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { TrafficGeneratorService } from './traffic-generator.service';
 import { StorageModule } from '../storage/storage.module';
 import { CacheModule } from '../cache/cache.module';
+import { TrafficGeneratorService } from './traffic-generator.service';
 
 @Module({
-  imports: [CacheModule, StorageModule],
+  imports: [StorageModule, CacheModule],
   providers: [TrafficGeneratorService],
 })
-export class TrafficGeneratorModule { }
+export class TrafficGeneratorModule {}

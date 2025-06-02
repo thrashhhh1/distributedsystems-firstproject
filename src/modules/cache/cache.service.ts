@@ -3,15 +3,13 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
 @Injectable()
-export class CacheService { 
+export class CacheService {
   private readonly logger = new Logger(CacheService.name);
   private cacheHits = 0;
   private cacheMisses = 0;
 
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
-  
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
   async get<T>(key: string): Promise<T | undefined> {
     try {
       const result = await this.cacheManager.get<T>(key);
@@ -24,7 +22,10 @@ export class CacheService {
       }
       return result;
     } catch (error) {
-      this.logger.error(`Error al obtener ${key} del cache: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error al obtener ${key} del cache: ${error.message}`,
+        error.stack,
+      );
       this.cacheMisses++;
       return undefined;
     }
@@ -34,23 +35,29 @@ export class CacheService {
     try {
       this.logger.debug(`Setteando en cache: ${key}`);
       if (ttl) {
-          await this.cacheManager.set(key, value, ttl);
+        await this.cacheManager.set(key, value, ttl);
       } else {
-          await this.cacheManager.set(key, value, ttl);
+        await this.cacheManager.set(key, value, ttl);
       }
     } catch (error) {
-      this.logger.error(`Error al settear ${key} en cache: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error al settear ${key} en cache: ${error.message}`,
+        error.stack,
+      );
     }
   }
-  
+
   async del(key: string): Promise<void> {
-      try {
-          this.logger.debug(`Eliminando de cache: ${key}`);
-          await this.cacheManager.del(key);
-          this.logger.debug(`${key} eliminada del cache.`);
-      } catch (error) {
-          this.logger.error(`Error al intentar eliminar ${key} del cache: ${error.message}`, error.stack);
-      }
+    try {
+      this.logger.debug(`Eliminando de cache: ${key}`);
+      await this.cacheManager.del(key);
+      this.logger.debug(`${key} eliminada del cache.`);
+    } catch (error) {
+      this.logger.error(
+        `Error al intentar eliminar ${key} del cache: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   getCacheStats() {
@@ -70,7 +77,7 @@ export class CacheService {
     this.logger.log('Reiniciando estadisticas del cache.');
     try {
       await this.cacheManager.clear();
-      this.logger.log('Cache limpia.')
+      this.logger.log('Cache limpia.');
     } catch (error) {
       this.logger.error('Error al limpiar cache', error.stack);
     }
@@ -78,13 +85,15 @@ export class CacheService {
 
   // Metodo para el analisis de las politicas y tasas de arribo
   printAndResetCacheStats(simulationType: string) {
-    this.logger.log(`--- Estadisticas de cache con simulacion: ${simulationType} ---`);
+    this.logger.log(
+      `--- Estadisticas de cache con simulacion: ${simulationType} ---`,
+    );
     const stats = this.getCacheStats();
     this.logger.log(`Total de HITS: ${stats.hits}`);
     this.logger.log(`Total de MISSES: ${stats.misses}`);
     this.logger.log(`Total de QUERYS: ${stats.total}`);
     this.logger.log(`HIT RATE: ${stats.hitRate}`);
     this.logger.log(`--------------------------------------------------`);
-    this.resetCacheStatsAndClearCache(); 
+    this.resetCacheStatsAndClearCache();
   }
 }
